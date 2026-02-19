@@ -1,0 +1,261 @@
+# Operations adapted from Twisp examples for genqlient.
+# @cel directives removed — UUIDs generated client-side.
+
+mutation CreateActivityIndex {
+  schema {
+    createIndex(
+      input: {
+        name: "activity"
+        on: Entry
+        partition: [
+          { alias: "journalId", value: "document.journal_id" }
+          {
+            alias: "accountId"
+            value: "document.parent_account_ids+[document.account_id]"
+          }
+          { alias: "settled", value: "string(bool(document.layer == 0))" }
+          {
+            alias: "period"
+            value: "string(date(document.?metadata.?statementDate.orValue(document.?metadata.?effective.orValue(document.created)))).take(7)"
+            type: STRING
+          }
+        ]
+        sort: [{ alias: "created", value: "document.created", sort: DESC }]
+        constraints: {
+          isNotVoidEntry: "!document.is_void_entry"
+          isNotVoidedEntry: "!document.is_voided_entry"
+        }
+      }
+    ) {
+      on
+    }
+  }
+}
+
+mutation Setup(
+  $journalId: UUID!
+  $tranCodeId: UUID!
+  $account1Id: UUID!
+  $account2Id: UUID!
+) {
+  createJournal(
+    input: {
+      journalId: $journalId
+      name: "Sample"
+      code: "SAMPLE"
+      config: { enableEffectiveBalances: true }
+    }
+  ) {
+    journalId
+  }
+  createTranCode(
+    input: {
+      tranCodeId: $tranCodeId
+      code: "SIMPLE"
+      description: "simple tran code"
+      params: [
+        { name: "account1", type: UUID, description: "Acct 1" }
+        { name: "account2", type: UUID, description: "Acct 2" }
+        { name: "amount", type: DECIMAL, description: "Decimal amount" }
+        { name: "effective", type: DATE, description: "effective" }
+        {
+          name: "statementDate"
+          type: DATE
+          description: "statement dates for backdated transactions"
+          default: "1970-01-01"
+        }
+        {
+          name: "currency"
+          type: STRING
+          description: "Currency"
+          default: "USD"
+        }
+      ]
+      vars: {
+        statementDate: "params.statementDate == date('1970-01-01') ? string(params.effective) : string(params.statementDate)"
+      }
+      transaction: {
+        effective: "params.effective"
+        journalId: "uuid('b125f5a0-e803-11f0-a078-069b540ea27c')"
+      }
+      entries: [
+        {
+          accountId: "params.account1"
+          units: "params.amount"
+          currency: "params.currency"
+          entryType: "'SIMPLE_CR'"
+          direction: "CREDIT"
+          layer: "SETTLED"
+          metadata: "{ 'effective':string(params.effective), 'statementDate': vars.statementDate }"
+        }
+        {
+          accountId: "params.account2"
+          units: "params.amount"
+          currency: "params.currency"
+          entryType: "'SIMPLE_DR'"
+          direction: "DEBIT"
+          layer: "SETTLED"
+          metadata: "{ 'effective':string(params.effective), 'statementDate': vars.statementDate }"
+        }
+      ]
+    }
+  ) {
+    tranCodeId
+  }
+
+  ernie_checking: createAccount(
+    input: {
+      accountId: $account1Id
+      name: "Ernie Bishop - Checking"
+      code: "ERNIE.CHECKING"
+      description: "Ernie's checking account"
+      normalBalanceType: CREDIT
+    }
+  ) {
+    accountId
+    name
+  }
+
+  bert_checking: createAccount(
+    input: {
+      accountId: $account2Id
+      name: "Bert - Checking"
+      code: "BERT.CHECKING"
+      description: "Bert's checking account"
+      normalBalanceType: CREDIT
+    }
+  ) {
+    accountId
+    name
+  }
+}
+
+mutation PostTransaction($transactionId: UUID!, $effective: Date!) {
+  postTransaction(
+    input: {
+      transactionId: $transactionId
+      tranCode: "SIMPLE"
+      params: {
+        account1: "1fd1dd3e-33fe-4ef5-9d58-676ef8d306b5"
+        account2: "6c6affb0-5cf5-402b-8d84-01bfc1624a2c"
+        effective: $effective
+        amount: "1.00"
+      }
+    }
+  ) {
+    transactionId
+    created
+  }
+}
+
+mutation PostTransactionWithStatementDate(
+  $transactionId: UUID!
+  $effective: Date!
+  $statementDate: Date!
+) {
+  postTransaction(
+    input: {
+      transactionId: $transactionId
+      tranCode: "SIMPLE"
+      params: {
+        account1: "1fd1dd3e-33fe-4ef5-9d58-676ef8d306b5"
+        account2: "6c6affb0-5cf5-402b-8d84-01bfc1624a2c"
+        effective: $effective
+        statementDate: $statementDate
+        amount: "5.00"
+      }
+    }
+  ) {
+    transactionId
+    created
+  }
+}
+
+query StatementBalance(
+  $accountID: UUID!
+  $journalID: UUID!
+  $openDate: Date!
+  $closeDate: Date!
+  $priorPeriodCloseStamp: String!
+  $thisPeriodCloseStamp: String!
+) {
+  open: balance(
+    accountId: $accountID
+    journalId: $journalID
+    effective: {
+      cumulative: $openDate
+      where: { modified: { lt: $priorPeriodCloseStamp } }
+    }
+    type: PREPARED
+  ) {
+    modified
+    available(layer: SETTLED) {
+      normalBalance {
+        units
+      }
+    }
+    history(first: 5) {
+      nodes {
+        entry {
+          metadata
+          amount {
+            units
+          }
+        }
+      }
+    }
+  }
+
+  closed: balance(
+    accountId: $accountID
+    journalId: $journalID
+    effective: {
+      cumulative: $closeDate
+      where: { modified: { lt: $thisPeriodCloseStamp } }
+    }
+    type: PREPARED
+  ) {
+    modified
+    available(layer: SETTLED) {
+      normalBalance {
+        units
+      }
+    }
+    history(first: 5) {
+      nodes {
+        entry {
+          metadata
+          amount {
+            units
+          }
+        }
+      }
+    }
+  }
+}
+
+query ActivityQuery($journalId: String, $accountId: String, $period: String) {
+  entries(
+    index: { name: CUSTOM }
+    where: {
+      custom: {
+        index: "activity"
+        partition: [
+          { alias: "journalId", value: { eq: $journalId } }
+          { alias: "accountId", value: { eq: $accountId } }
+          { alias: "settled", value: { eq: "true" } }
+          { alias: "period", value: { eq: $period } }
+        ]
+        sort: []
+      }
+    }
+    first: 100
+  ) {
+    nodes {
+      metadata
+      amount {
+        units
+      }
+    }
+  }
+}
