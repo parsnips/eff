@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"syscall"
 	"testing"
@@ -53,10 +54,20 @@ func WithKeepAlive() TwispOption {
 }
 
 // StartTwisp launches the Twisp local container and waits for the healthcheck.
+// If the TWISP_ENDPOINT environment variable is set (e.g. "http://localhost:8080"),
+// the container is skipped and the tests run against that endpoint instead.
 func StartTwisp(ctx context.Context, opts ...TwispOption) (*TwispContainer, error) {
 	var cfg twispConfig
 	for _, o := range opts {
 		o(&cfg)
+	}
+
+	if endpoint := os.Getenv("TWISP_ENDPOINT"); endpoint != "" {
+		graphqlEndpoint := strings.TrimRight(endpoint, "/") + "/financial/v1/graphql"
+		return &TwispContainer{
+			GraphQLEndpoint: graphqlEndpoint,
+			KeepAlive:       true,
+		}, nil
 	}
 
 	var logConsumers []testcontainers.LogConsumer
