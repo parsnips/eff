@@ -326,41 +326,10 @@ func TestParallelRuns(t *testing.T) {
 			require.NoError(tt, err)
 			require.NotNil(tt, activityJanResp)
 
-			expectedJanResp := ActivityQueryResponse{
-				Entries: ActivityQueryEntriesEntryConnection{
-					Nodes: []*ActivityQueryEntriesEntryConnectionNodesEntry{
-						{
-							Metadata: Ptr(map[string]any{
-								"effective":     "2026-01-31",
-								"statementDate": "2026-01-31",
-							}),
-							Amount: ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney{
-								Units: Decimal("1.00"),
-							},
-						},
-						{
-							Metadata: Ptr(map[string]any{
-								"effective":     "2026-01-15",
-								"statementDate": "2026-01-15",
-							}),
-							Amount: ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney{
-								Units: Decimal("1.00"),
-							},
-						},
-						{
-							Metadata: Ptr(map[string]any{
-								"effective":     "2026-01-01",
-								"statementDate": "2026-01-01",
-							}),
-							Amount: ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney{
-								Units: Decimal("1.00"),
-							},
-						},
-					},
-				},
-			}
+			expectedJanResp := `{"entries":{"nodes":[{"metadata":{"effective":"2026-01-31","statementDate":"2026-01-31"},"amount":{"units":"1.00"},"transaction":{"metadata":{},"entries":{"nodes":[{"account":{"code":"ERNIE.CHECKING"}},{"account":{"code":"BERT.CHECKING"}}]}}},{"metadata":{"effective":"2026-01-15","statementDate":"2026-01-15"},"amount":{"units":"1.00"},"transaction":{"metadata":{},"entries":{"nodes":[{"account":{"code":"ERNIE.CHECKING"}},{"account":{"code":"BERT.CHECKING"}}]}}},{"metadata":{"effective":"2026-01-01","statementDate":"2026-01-01"},"amount":{"units":"1.00"},"transaction":{"metadata":{},"entries":{"nodes":[{"account":{"code":"ERNIE.CHECKING"}},{"account":{"code":"BERT.CHECKING"}}]}}}]}}`
+			actualJanResp := string(Must(json.Marshal(activityJanResp)))
 
-			require.EqualValues(tt, string(Must(json.Marshal(expectedJanResp))), string(Must(json.Marshal(activityJanResp))))
+			require.JSONEq(tt, expectedJanResp, actualJanResp, actualJanResp)
 
 			activityFebResp, err := ActivityQuery(
 				ctx,
@@ -373,31 +342,9 @@ func TestParallelRuns(t *testing.T) {
 			require.NoError(tt, err)
 			require.NotNil(tt, activityFebResp)
 
-			expectedFebResp := ActivityQueryResponse{
-				Entries: ActivityQueryEntriesEntryConnection{
-					Nodes: []*ActivityQueryEntriesEntryConnectionNodesEntry{
-						{
-							Metadata: Ptr(map[string]any{
-								"effective":     "2026-01-24",
-								"statementDate": "2026-02-15",
-							}),
-							Amount: ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney{
-								Units: Decimal("5.00"),
-							},
-						},
-						{
-							Metadata: Ptr(map[string]any{
-								"effective":     "2026-02-15",
-								"statementDate": "2026-02-15",
-							}),
-							Amount: ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney{
-								Units: Decimal("1.00"),
-							},
-						},
-					},
-				},
-			}
-			require.JSONEq(tt, string(Must(json.Marshal(expectedFebResp))), string(Must(json.Marshal(activityFebResp))))
+			expectedFebResp := `{"entries":{"nodes":[{"metadata":{"effective":"2026-01-24","statementDate":"2026-02-15"},"amount":{"units":"5.00"},"transaction":{"metadata":{},"entries":{"nodes":[{"account":{"code":"ERNIE.CHECKING"}},{"account":{"code":"BERT.CHECKING"}}]}}},{"metadata":{"effective":"2026-02-15","statementDate":"2026-02-15"},"amount":{"units":"1.00"},"transaction":{"metadata":{},"entries":{"nodes":[{"account":{"code":"ERNIE.CHECKING"}},{"account":{"code":"BERT.CHECKING"}}]}}}]}}`
+			actualFebResp := string(Must(json.Marshal(activityFebResp)))
+			require.JSONEq(tt, expectedFebResp, actualFebResp, actualFebResp)
 		})
 	}
 }

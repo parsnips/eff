@@ -37,6 +37,8 @@ type ActivityQueryEntriesEntryConnectionNodesEntry struct {
 	Metadata *map[string]interface{} `json:"metadata"`
 	// Amount of the ledger entry using the currency-supported Money type.
 	Amount ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney `json:"amount"`
+	// Reference to the transaction which posted this entry.
+	Transaction ActivityQueryEntriesEntryConnectionNodesEntryTransaction `json:"transaction"`
 }
 
 // GetMetadata returns ActivityQueryEntriesEntryConnectionNodesEntry.Metadata, and is useful for accessing the field via an interface.
@@ -47,6 +49,11 @@ func (v *ActivityQueryEntriesEntryConnectionNodesEntry) GetMetadata() *map[strin
 // GetAmount returns ActivityQueryEntriesEntryConnectionNodesEntry.Amount, and is useful for accessing the field via an interface.
 func (v *ActivityQueryEntriesEntryConnectionNodesEntry) GetAmount() ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney {
 	return v.Amount
+}
+
+// GetTransaction returns ActivityQueryEntriesEntryConnectionNodesEntry.Transaction, and is useful for accessing the field via an interface.
+func (v *ActivityQueryEntriesEntryConnectionNodesEntry) GetTransaction() ActivityQueryEntriesEntryConnectionNodesEntryTransaction {
+	return v.Transaction
 }
 
 // ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney includes the requested fields of the GraphQL type Money.
@@ -69,6 +76,83 @@ type ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney struct {
 
 // GetUnits returns ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney.Units, and is useful for accessing the field via an interface.
 func (v *ActivityQueryEntriesEntryConnectionNodesEntryAmountMoney) GetUnits() Decimal { return v.Units }
+
+// ActivityQueryEntriesEntryConnectionNodesEntryTransaction includes the requested fields of the GraphQL type Transaction.
+// The GraphQL type's documentation follows.
+//
+// Transactions record all accounting events in the ledger. In Twisp, the only way to write to a ledger is through a transaction.
+//
+// Every transaction writes two or more entries to the ledger in standard double-entry accounting practice.
+//
+// Twisp expands upon the basic principle of an accounting transaction with additional features like transaction codes and correlations.
+type ActivityQueryEntriesEntryConnectionNodesEntryTransaction struct {
+	// Arbitrary structured data about this transaction.
+	Metadata *map[string]interface{} `json:"metadata"`
+	// Ledger entries written by the transaction.
+	Entries ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnection `json:"entries"`
+}
+
+// GetMetadata returns ActivityQueryEntriesEntryConnectionNodesEntryTransaction.Metadata, and is useful for accessing the field via an interface.
+func (v *ActivityQueryEntriesEntryConnectionNodesEntryTransaction) GetMetadata() *map[string]interface{} {
+	return v.Metadata
+}
+
+// GetEntries returns ActivityQueryEntriesEntryConnectionNodesEntryTransaction.Entries, and is useful for accessing the field via an interface.
+func (v *ActivityQueryEntriesEntryConnectionNodesEntryTransaction) GetEntries() ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnection {
+	return v.Entries
+}
+
+// ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnection includes the requested fields of the GraphQL type EntryConnection.
+// The GraphQL type's documentation follows.
+//
+// Connection to a list of Entry nodes.
+// Access Entry nodes directly through the `nodes` field, or access information about the connection edges with the `edges` field.
+// Use `pageInfo` to paginate responses using the cursors provided.
+type ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnection struct {
+	Nodes []*ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntry `json:"nodes"`
+}
+
+// GetNodes returns ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnection) GetNodes() []*ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntry {
+	return v.Nodes
+}
+
+// ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntry includes the requested fields of the GraphQL type Entry.
+// The GraphQL type's documentation follows.
+//
+// An entry represents one side of a transaction in a ledger. In other systems, these may be called "ledger lines" or "journal entries".
+//
+// Entries always have an account, amount, and direction (CREDIT or DEBIT). In addition, Twisp uses the concept of "entry types" to assign every entry to a categorical type.
+//
+// Twisp enforces double-entry accounting, which in practice means that entries can only be entered in the context of a Transaction. Posting a transaction will create _at least 2_ ledger entries.
+type ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntry struct {
+	// Reference to the account to be debited/credited.
+	Account ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntryAccount `json:"account"`
+}
+
+// GetAccount returns ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntry.Account, and is useful for accessing the field via an interface.
+func (v *ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntry) GetAccount() ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntryAccount {
+	return v.Account
+}
+
+// ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntryAccount includes the requested fields of the GraphQL type Account.
+// The GraphQL type's documentation follows.
+//
+// Accounts model all of the economic activity that your ledger provides.
+//
+// The chart of accounts is the basis for creating balance sheets, P&L reports, and for understanding the balances for the customer and business entities your business services.
+//
+// Accounts can be organized into sets with the AccountSet type. Hierarchical tree structures which roll up balances across many accounts can be modeled by nesting sets within other sets.
+type ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntryAccount struct {
+	// Shorthand code for the account, often an abbreviated version of the account name.
+	// Example: 'ACH_RECON' for an account named 'ACH Reconciliation'.
+	Code string `json:"code"`
+}
+
+// GetCode returns ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntryAccount.Code, and is useful for accessing the field via an interface.
+func (v *ActivityQueryEntriesEntryConnectionNodesEntryTransactionEntriesEntryConnectionNodesEntryAccount) GetCode() string {
+	return v.Code
+}
 
 // ActivityQueryResponse is returned by ActivityQuery on success.
 type ActivityQueryResponse struct {
@@ -727,6 +811,16 @@ query ActivityQuery ($journalId: String, $accountId: String, $period: String) {
 			metadata
 			amount {
 				units
+			}
+			transaction {
+				metadata
+				entries(first: 10) {
+					nodes {
+						account {
+							code
+						}
+					}
+				}
 			}
 		}
 	}

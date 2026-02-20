@@ -256,6 +256,17 @@ query ActivityQuery($journalId: String, $accountId: String, $period: String) {
       amount {
         units
       }
+
+      transaction {
+        metadata
+        entries(first: 10) {
+          nodes {
+            account {
+              code
+            }
+          }
+        }
+      }
     }
   }
 }
